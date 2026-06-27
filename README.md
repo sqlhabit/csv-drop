@@ -1,6 +1,6 @@
 # Table Drop
 
-<img src="https://github.com/makaroni4/TableDrop/blob/main/snapshot.png?raw=true" width="700">
+<img src="https://github.com/makaroni4/TableDrop/blob/main/snapshot.png?raw=true" width="500">
 
 A lightweight macOS app for uploading CSV files to BigQuery.
 
