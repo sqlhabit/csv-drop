@@ -2,8 +2,18 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+private enum AppSettings {
+    static let tableReferenceKey = "tableReference"
+
+    static var tableReference: String {
+        get { UserDefaults.standard.string(forKey: tableReferenceKey) ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: tableReferenceKey) }
+    }
+}
+
 struct ContentView: View {
-    @AppStorage("tableReference") private var tableReference = ""
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var tableReference = AppSettings.tableReference
     @State private var selectedFileURL: URL?
     @State private var isTargeted = false
     @State private var isUploading = false
@@ -29,6 +39,17 @@ struct ContentView: View {
         }
         .padding(20)
         .frame(minWidth: 440, minHeight: 300)
+        .onChange(of: tableReference) { newValue in
+            AppSettings.tableReference = newValue
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase != .active {
+                AppSettings.tableReference = tableReference
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            AppSettings.tableReference = tableReference
+        }
     }
 
     private var dropZone: some View {
