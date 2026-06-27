@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GITHUB_REPO="makaroni4/CSVDrop"
+GITHUB_REPO="sqlhabit/csv-drop"
 APP_PATH="/Applications/CSVDrop.app"
 
 info() { printf '==> %s\n' "$*"; }

@@ -1,10 +1,10 @@
 # CSV Drop
 
-<img src="https://github.com/makaroni4/CSVDrop/blob/main/snapshot.png?raw=true" width="500">
+<img src="https://github.com/sqlhabit/csv-drop/blob/main/snapshot.png?raw=true" width="500">
 
 A lightweight macOS app for uploading CSV files to BigQuery.
 
-Behind the scenes, the app uses [`bqcsv`](https://github.com/makaroni4/bqcsv) to upload a CSV file.
+Behind the scenes, the app uses [`bqcsv`](https://github.com/sqlhabit/bqcsv) to upload a CSV file.
 
 No API keys or OAuth setup required — the app reuses your existing `gcloud` / `bq` credentials.
 
@@ -14,7 +14,7 @@ No API keys or OAuth setup required — the app reuses your existing `gcloud` /
 2. Run the setup script to install `bqcsv` and verify the Google Cloud SDK:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/makaroni4/csv-drop/refs/heads/main/bin/install | bash
+curl -fsSL https://raw.githubusercontent.com/sqlhabit/csv-drop/refs/heads/main/bin/install | bash
 ```
 
 The script checks for `bq` / `gcloud`, installs `bqcsv` (via Homebrew Python when available), and prints next steps.
