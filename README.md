@@ -10,14 +10,19 @@ No API keys or OAuth setup required — the app reuses your existing `gcloud` /
 
 ## Installation
 
-1. Install **CSV Drop** from the Mac App Store.
-2. Run the setup script to install `bqcsv` and verify the Google Cloud SDK:
+Run the setup script to install CSV Drop, `bqcsv`, and verify the Google Cloud SDK:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sqlhabit/csv-drop/refs/heads/main/bin/install | bash
 ```
 
-The script checks for `bq` / `gcloud`, installs `bqcsv` (via Homebrew Python when available), and prints next steps.
+The script downloads the latest [GitHub release](https://github.com/sqlhabit/csv-drop/releases) to `/Applications/CSVDrop.app`, installs `bqcsv` (via Homebrew Python when available), and checks for `bq` / `gcloud`.
+
+If you already installed CSV Drop from the Mac App Store, install only the CLI dependencies:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sqlhabit/csv-drop/refs/heads/main/bin/install | bash -s -- --skip-app
+```
 
 ## Prerequisites
 

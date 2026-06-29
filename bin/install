@@ -65,20 +65,57 @@ install_bqcsv() {
 }
 
 resolve_latest_release_url() {
-  curl -fsSL \
-    -H "Accept: application/vnd.github+json" \
-    -H "User-Agent: CSVDrop-install-script" \
-    "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" |
-    python3 -c "
+  local api_json url
+
+  if api_json="$(
+    curl -fsSL \
+      -H "Accept: application/vnd.github+json" \
+      -H "User-Agent: CSVDrop-install-script" \
+      "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" 2>/dev/null
+  )"; then
+    url="$(
+      printf '%s' "$api_json" | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
-for asset in data.get('assets', []):
-    if asset['name'].endswith('.zip'):
+assets = data.get('assets', [])
+for asset in assets:
+    if asset['name'].startswith('CSVDrop') and asset['name'].endswith('.zip'):
         print(asset['browser_download_url'])
         break
 else:
-    sys.exit(1)
-"
+    for asset in assets:
+        if asset['name'].endswith('.zip'):
+            print(asset['browser_download_url'])
+            break
+    else:
+        sys.exit(1)
+" 2>/dev/null
+    )" || true
+    if [[ -n "$url" ]]; then
+      printf '%s\n' "$url"
+      return 0
+    fi
+  fi
+
+  if command -v gh >/dev/null 2>&1; then
+    url="$(gh release view --repo "$GITHUB_REPO" --json assets -q '.assets[] | select(.name | test("^CSVDrop-.*\\.zip$")) | .url' 2>/dev/null | head -1)" || true
+    if [[ -n "$url" ]]; then
+      printf '%s\n' "$url"
+      return 0
+    fi
+  fi
+
+  url="$(
+    curl -fsSL "https://github.com/${GITHUB_REPO}/releases/latest" 2>/dev/null |
+      grep -oE "https://github.com/${GITHUB_REPO}/releases/download/[^/]+/CSVDrop-[^\"]+\.zip" |
+      head -1
+  )" || true
+  if [[ -n "$url" ]]; then
+    printf '%s\n' "$url"
+    return 0
+  fi
+
+  return 1
 }
 
 install_csvdrop() {
@@ -113,10 +150,37 @@ print_completion_message() {
   warn "Open System Settings → Privacy & Security and choose Open Anyway if prompted."
 }
 
+usage() {
+  cat <<'EOF'
+Usage: install [OPTIONS]
+
+Install CSV Drop and its CLI dependencies on macOS.
+
+Options:
+  --skip-app   Skip downloading CSVDrop.app (e.g. you installed from the Mac App Store)
+  -h, --help   Show this help
+EOF
+}
+
 main() {
+  local skip_app=0
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --skip-app) skip_app=1 ;;
+      -h|--help) usage; exit 0 ;;
+      *) die "Unknown option: $1 (try --help)" ;;
+    esac
+    shift
+  done
+
   require_macos
   info "CSV Drop setup"
-  install_csvdrop
+  if [[ "$skip_app" -eq 1 ]]; then
+    info "Skipping CSV Drop app install (--skip-app)"
+  else
+    install_csvdrop
+  fi
   install_bqcsv
   check_gcloud
   print_completion_message
