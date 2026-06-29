@@ -3,17 +3,61 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 private enum AppSettings {
-    static let tableReferenceKey = "tableReference"
+    static let projectKey = "bqProject"
+    static let datasetKey = "bqDataset"
+    static let tableKey = "bqTable"
+    private static let legacyTableReferenceKey = "tableReference"
 
-    static var tableReference: String {
-        get { UserDefaults.standard.string(forKey: tableReferenceKey) ?? "" }
-        set { UserDefaults.standard.set(newValue, forKey: tableReferenceKey) }
+    static var project: String {
+        get { UserDefaults.standard.string(forKey: projectKey) ?? migratedLegacy()?.project ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: projectKey) }
+    }
+
+    static var dataset: String {
+        get { UserDefaults.standard.string(forKey: datasetKey) ?? migratedLegacy()?.dataset ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: datasetKey) }
+    }
+
+    static var table: String {
+        get { UserDefaults.standard.string(forKey: tableKey) ?? migratedLegacy()?.table ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: tableKey) }
+    }
+
+    private static func migratedLegacy() -> (project: String, dataset: String, table: String)? {
+        guard UserDefaults.standard.string(forKey: projectKey) == nil,
+              UserDefaults.standard.string(forKey: datasetKey) == nil,
+              UserDefaults.standard.string(forKey: tableKey) == nil,
+              let legacy = UserDefaults.standard.string(forKey: legacyTableReferenceKey)?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+              !legacy.isEmpty
+        else {
+            return nil
+        }
+
+        let parts = legacy.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count >= 2 else { return nil }
+
+        let project = String(parts[0])
+        let dataset = String(parts[1])
+        let table = parts.count >= 3 ? String(parts[2]) : ""
+        UserDefaults.standard.set(project, forKey: projectKey)
+        UserDefaults.standard.set(dataset, forKey: datasetKey)
+        UserDefaults.standard.set(table, forKey: tableKey)
+        return (project, dataset, table)
+    }
+
+    static func persist(project: String, dataset: String, table: String) {
+        self.project = project
+        self.dataset = dataset
+        self.table = table
     }
 }
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @State private var tableReference = AppSettings.tableReference
+    @State private var project = AppSettings.project
+    @State private var dataset = AppSettings.dataset
+    @State private var table = AppSettings.table
     @State private var selectedFileURL: URL?
     @State private var securityScopedFileURL: URL?
     @State private var isTargeted = false
@@ -25,9 +69,15 @@ struct ContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Table reference")
+                Text("BigQuery destination")
                     .font(.headline)
-                TextField("project_id.dataset_id.table_id", text: $tableReference)
+                TextField("Project", text: $project)
+                    .textFieldStyle(.roundedBorder)
+                    .disabled(isUploading)
+                TextField("Dataset", text: $dataset)
+                    .textFieldStyle(.roundedBorder)
+                    .disabled(isUploading)
+                TextField("Table (optional)", text: $table)
                     .textFieldStyle(.roundedBorder)
                     .disabled(isUploading)
             }
@@ -40,17 +90,21 @@ struct ContentView: View {
         }
         .padding(20)
         .frame(minWidth: 440, minHeight: 300)
-        .onChange(of: tableReference) { newValue in
-            AppSettings.tableReference = newValue
-        }
+        .onChange(of: project) { _ in persistSettings() }
+        .onChange(of: dataset) { _ in persistSettings() }
+        .onChange(of: table) { _ in persistSettings() }
         .onChange(of: scenePhase) { newPhase in
             if newPhase != .active {
-                AppSettings.tableReference = tableReference
+                persistSettings()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-            AppSettings.tableReference = tableReference
+            persistSettings()
         }
+    }
+
+    private func persistSettings() {
+        AppSettings.persist(project: project, dataset: dataset, table: table)
     }
 
     private var dropZone: some View {
@@ -206,9 +260,11 @@ struct ContentView: View {
             return
         }
 
-        guard !tableReference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard !project.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !dataset.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
             uploadResult = nil
-            statusMessage = "Enter a table reference before uploading."
+            statusMessage = "Enter project and dataset before uploading."
             statusIsError = true
             return
         }
@@ -247,7 +303,9 @@ struct ContentView: View {
             do {
                 let result = try await BQUploadService.upload(
                     csvURL: fileURL,
-                    tableReference: tableReference
+                    project: project,
+                    dataset: dataset,
+                    table: table.isEmpty ? nil : table
                 )
                 await MainActor.run {
                     uploadResult = result

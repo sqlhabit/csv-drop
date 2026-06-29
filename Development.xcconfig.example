@@ -1,3 +1,5 @@
 // Copy this file to Development.xcconfig and set your local bqcsv checkout path.
 // Development.xcconfig is gitignored.
 BQCSV_DEV_REPO = /absolute/path/to/bqcsv
+// Optional: override the Python used for `python3 -m src.cli` in Debug builds.
+// BQCSV_PYTHON = /absolute/path/to/python3

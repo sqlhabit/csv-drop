@@ -44,6 +44,6 @@ cp Development.xcconfig.example Development.xcconfig
 # edit Development.xcconfig and set BQCSV_DEV_REPO to your checkout
 ```
 
-The repo root must contain `src/cli.py`. The app runs `python3 -m src.cli` with `PYTHONPATH` set to that directory. `Development.xcconfig` is gitignored; the shared Xcode scheme passes `BQCSV_DEV_REPO` into the app at launch.
+The repo root must contain `src/cli.py`. The app runs `python3 -m src.cli` with `PYTHONPATH` set to that directory. Python is resolved from the installed `bqcsv` shebang (pyenv, asdf, Homebrew), a repo `.venv`, or `BQCSV_PYTHON` / `PYTHON_PATH`. `Development.xcconfig` is gitignored; the shared Xcode scheme passes `BQCSV_DEV_REPO` into the app at launch.
 
 If `BQCSV_DEV_REPO` is unset, Debug falls back to the same lookup as Release (`BQCSV_PATH`, Homebrew, pyenv, `PATH`).
